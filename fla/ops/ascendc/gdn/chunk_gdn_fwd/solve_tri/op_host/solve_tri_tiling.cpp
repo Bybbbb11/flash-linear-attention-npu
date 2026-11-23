@@ -7,6 +7,7 @@
  #include "register/op_impl_registry.h"
  #include "log/log.h"
  #include "tiling/platform/platform_ascendc.h"
+#include "../op_kernel/solve_tri_tiling_key.h"  // 9201 TPL 模板化 tiling key
 #include "graph/utils/type_utils.h"
  #include <string>
 #include <algorithm>
@@ -148,6 +149,9 @@ static ge::graphStatus ValidateVarlenMetadata(gert::TilingContext *context, int6
      auto platformInfo = context->GetPlatformInfo();
      auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo);
      int64_t coreNum = ascendcPlatform.GetCoreNumAic();
+    // host 侧平台判定统一走 GetCurNpuArch（检视意见：禁 __CCE_AICORE__/ASCEND_SOC_VERSION 混用）
+    const auto npuArch = ascendcPlatform.GetCurNpuArch();
+    const bool isAscend9201 = (npuArch == NpuArch::DAV_9201);
      if (coreNum == 0) {
          if constexpr (IsA2A3) {
              OP_LOGE_WITHOUT_REPORT(context->GetNodeName(), "SolveTri requires at least one AIC core.");
@@ -294,9 +298,10 @@ static ge::graphStatus ValidateVarlenMetadata(gert::TilingContext *context, int6
         lastChunkValidSize = (remainder == 0) ? chunkSize : remainder;
     }
 
-    // chunk=16：每个 AIC 一轮处理 8 个 tile（2 Vector × 4 leaves）
+    // chunk=16：950 每个 AIC 一轮处理 8 个 tile（2 Vector × 4 leaves）；
+    //           960（9201）CV 1:1，单 AIV 承担 4 个 tile
     // chunk=32：每个 AIC 一轮处理 2 个 tile（单 Vector × 4 个 16×16 叶子）
-    constexpr int64_t kTilesPerAicBatch16 = 8;
+    const int64_t kTilesPerAicBatch16 = isAscend9201 ? 4 : 8;
     constexpr int64_t kTilesPerAicBatch32 = 2;
     int64_t tilesPerCore = 0;
     int64_t usedCoreNum = 0;
@@ -382,6 +387,10 @@ static ge::graphStatus ValidateVarlenMetadata(gert::TilingContext *context, int6
          if (!(chunkSize == 16 || chunkSize == 32 || chunkSize == 64 || chunkSize == 128)) {
              tilingKey = 64;
          }
+         // 960（9201）走 TPL 模板化 key（CHUNK_SIZE 入参）；950 保持运行时 key，行为不变
+         if (isAscend9201) {
+             tilingKey = GET_TPL_TILING_KEY(tilingKey);
+         }
      }
      context->SetTilingKey(tilingKey);
      tiling.SaveToBuffer(context->GetRawTilingData()->GetData(),
@@ -406,7 +415,8 @@ static ge::graphStatus ValidateVarlenMetadata(gert::TilingContext *context, int6
          }
          ws[0] = ((userWorkspaceSize + 511) / 512) * 512 + sysWorkspaceSize;
      } else {
-    if (ascendcPlatform.GetCurNpuArch() == NpuArch::DAV_3510) {
+    if (npuArch == NpuArch::DAV_3510 || npuArch == NpuArch::DAV_9201) {
+    // arch92 与 arch35 同为全程片上缓存；FP32 MBH 中转策略与 3510 一致
     // FP32 MBH：每 AIC 核一块 side×side FP32 NZ 中转（Fixpipe ChannelSplit L0C→GM→L1）
     // chunk16 纯 Vector，不需要中转；chunk32 把两个 32×32 打进 64×64 工作区
     size_t mbhSide = static_cast<size_t>(chunkSize);

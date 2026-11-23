@@ -2,7 +2,10 @@
  * Copyright (c) 2026 Tianjin University, Ltd.
  * CANN Open Software License Agreement Version 2.0.
  */
-#if defined(__NPU_ARCH__) && (__NPU_ARCH__ == 3510)
+// 平台门控（kernel 侧统一 __NPU_ARCH__，检视意见第 3 条）：9201→internal_a96（arch92 独立实现树）
+#if defined(__NPU_ARCH__) && (__NPU_ARCH__ == 9201)
+#include "internal_a96/arch35/chunk_gated_delta_rule_fwd_arch35.cpp"
+#elif defined(__NPU_ARCH__) && (__NPU_ARCH__ == 3510)
 #include "internal/arch35/chunk_gated_delta_rule_fwd_arch35.cpp"
 #else
 #include "internal/arch22/chunk_gated_delta_rule_fwd_arch22.cpp"

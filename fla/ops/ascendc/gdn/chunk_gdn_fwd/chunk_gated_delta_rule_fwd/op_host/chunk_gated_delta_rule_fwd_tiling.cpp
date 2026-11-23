@@ -20,7 +20,9 @@ ge::graphStatus Tiling4ChunkGatedDeltaRuleFwd(gert::TilingContext *context)
         return ge::GRAPH_FAILED;
     }
     const platform_ascendc::PlatformAscendC platform(context->GetPlatformInfo());
-    if (platform.GetCurNpuArch() == NpuArch::DAV_3510) {
+    // A6(9201)与 950 同属新架构族，走 Arch35 tiling（host 统一 GetCurNpuArch，检视意见第 3 条）
+    const auto fwdCurArch = platform.GetCurNpuArch();
+    if (fwdCurArch == NpuArch::DAV_3510 || fwdCurArch == NpuArch::DAV_9201) {
         return Tiling4ChunkGatedDeltaRuleFwdArch35(context);
     }
     return Tiling4ChunkGatedDeltaRuleFwdArch22(context);

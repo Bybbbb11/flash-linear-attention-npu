@@ -107,7 +107,9 @@ ge::graphStatus Tiling4ChunkFwdO(gert::TilingContext *context)
         useExp2,
         stateVFirst,
         outputLayout,
-        ascendcPlatform.GetCurNpuArch() == NpuArch::DAV_3510,
+        // A6(9201)与 950 同属新架构族（host 统一 GetCurNpuArch，检视意见第 3 条）
+        (ascendcPlatform.GetCurNpuArch() == NpuArch::DAV_3510) ||
+            (ascendcPlatform.GetCurNpuArch() == NpuArch::DAV_9201),
         aicCoreNum,
         sysWorkspaceSize,
     };

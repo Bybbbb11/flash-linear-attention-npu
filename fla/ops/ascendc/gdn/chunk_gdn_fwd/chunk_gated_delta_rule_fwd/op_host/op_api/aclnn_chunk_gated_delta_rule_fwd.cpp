@@ -96,9 +96,9 @@ struct GdnShapeInfo {
 
 static bool IsAscend950()
 {
+    // 350 系列新路径对 A5(DAV_3510)/A6(DAV_9201) 同时开放；IsRegbase 集合不含 9201，这里显式判定
     const auto npuArch = GetCurrentPlatformInfo().GetCurNpuArch();
-    using Ops::Transformer::AclnnUtil::IsRegbase;
-    return IsRegbase(npuArch);
+    return npuArch == NpuArch::DAV_3510 || npuArch == NpuArch::DAV_9201;
 }
 
 static bool IsDav2201Device();

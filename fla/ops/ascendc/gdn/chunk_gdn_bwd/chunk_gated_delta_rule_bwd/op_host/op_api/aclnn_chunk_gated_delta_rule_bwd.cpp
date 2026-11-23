@@ -155,9 +155,12 @@ bool SameShape(const aclTensor *lhs, const aclTensor *rhs)
     return true;
 }
 
+// 平台判定统一走 GetCurNpuArch（检视意见第 2/3 条：不做 SoC 名字符串匹配）
+// A6（9201）与 950 同属新架构族，共用本路径
 bool IsAscend950()
 {
-    return GetCurrentPlatformInfo().GetCurNpuArch() == NpuArch::DAV_3510;
+    const auto arch = GetCurrentPlatformInfo().GetCurNpuArch();
+    return arch == NpuArch::DAV_3510 || arch == NpuArch::DAV_9201;
 }
 
 bool IsDav2201Device()

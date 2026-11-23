@@ -21,6 +21,11 @@
 
 namespace Common::Tile {
 
+// fixpipe L0C→UB 配置常量（本命名空间内使用；catlass 在全局命名空间也有同名常量，
+// 放这里避免与 catlass 的全局定义互相干扰）
+constexpr AscendC::FixpipeConfig CFG_ROW_MAJOR_UB = {AscendC::CO2Layout::ROW_MAJOR, true};
+constexpr AscendC::FixpipeConfig CFG_COLUMN_MAJOR_UB = {AscendC::CO2Layout::COLUMN_MAJOR, true};
+
 #if defined(CATLASS_ARCH) && CATLASS_ARCH == 3510
 
 template <
@@ -112,9 +117,9 @@ struct PackedTileCopyTla {
         AscendC::TPosition::C2>;
     using TensorL1Quant = std::conditional_t<
         HAS_QUANT_TENSOR,
-        tla::Tensor<AscendC::LocalTensor<uint64_t>, 
-            Catlass::detail::TagToLayout_t<uint64_t, Catlass::layout::VectorLayout>,            
-            tla::Coord<tla::_0>, 
+        tla::Tensor<AscendC::LocalTensor<uint64_t>,
+            Catlass::detail::TagToLayout_t<uint64_t, Catlass::layout::VectorLayout>,
+            tla::Coord<tla::_0>,
             AscendC::TPosition::A1>,
         Catlass::EmptyClass>;
 
@@ -132,7 +137,7 @@ struct PackedTileCopyTla {
         std::conditional_t<HAS_BIAS, Catlass::Gemm::Tile::TileCopyTla<ArchTag, TensorBias, TensorL1Bias>, Catlass::EmptyClass>;
 
     template <class TensorQuant>
-    using CopyGmToL1Scale = 
+    using CopyGmToL1Scale =
         std::conditional_t<HAS_QUANT_TENSOR, Catlass::Gemm::Tile::TileCopyTla<ArchTag, TensorQuant, TensorL1Quant>, Catlass::EmptyClass>;
 
     using CopyL1ToL0A = Catlass::Gemm::Tile::TileCopyTla<ArchTag, TensorL1A, TensorL0A>;
@@ -222,11 +227,18 @@ struct CopyL0CToUBTla<
         intriParams.reluEn = reluEn;
         intriParams.unitFlag = unitFlag;
         intriParams.dualDstCtl = 0;
-        intriParams.subBlockId = beginSubBlockIdx;
 
         auto dstOffset = dstTensor.layout()(dstTensor.coord());
         auto srcOffset = srcTensor.layout()(srcTensor.coord());
 
+#if defined(__NPU_ARCH__) && (__NPU_ARCH__ == 9201)
+        // A6 CV 1:1:无第二个 AIV,全部行单发写入唯一 AIV 的 UB
+        intriParams.mSize = dstTensorRowNum;
+        intriParams.subBlockId = 0;
+        AscendC::Fixpipe<ElementDst, ElementSrc, CFG_ROW_MAJOR_UB>(
+            dstTensor.data()[dstOffset], srcTensor.data()[srcOffset], intriParams);
+#else
+        intriParams.subBlockId = beginSubBlockIdx;
         // Call AscendC Fixpipe
         AscendC::Fixpipe<ElementDst, ElementSrc, CFG_ROW_MAJOR_UB>(
             dstTensor.data()[dstOffset], srcTensor.data()[srcOffset], intriParams);
@@ -239,6 +251,7 @@ struct CopyL0CToUBTla<
                     dstTensor.data()[dstOffset], srcTensor.data()[srcOffset], intriParams);
             }
         }
+#endif
     }
 
     template <class TensorDst, class TensorSrc>

@@ -60,7 +60,9 @@ ge::graphStatus Tiling4PrepareWyReprBwdDa(gert::TilingContext *context)
     OP_LOGD(context->GetNodeName(), "Tiling4PrepareWyReprBwdDa start.");
     const auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
 
-    if (ascendcPlatform.GetCurNpuArch() == NpuArch::DAV_3510) {
+    // A6(9201)与 950 同属新架构族，走 A5 tiling（host 统一 GetCurNpuArch，检视意见第 3 条）
+    const auto wyDaCurArch = ascendcPlatform.GetCurNpuArch();
+    if (wyDaCurArch == NpuArch::DAV_3510 || wyDaCurArch == NpuArch::DAV_9201) {
         PrepareWyReprBwdDaTilingA5 prepareWyReprBwdDaTilingA5;
         OP_CHECK_IF(!prepareWyReprBwdDaTilingA5.SetTiling(context),
                     OP_LOGE(context->GetNodeName(), "SetTiling failed."), return ge::GRAPH_FAILED);

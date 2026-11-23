@@ -350,7 +350,7 @@ public:
         using CopyL0CToGm = typename TileCopy_::template CopyL0CToGm<TensorC>;
         CopyL0CToGm copyL0CToDst;
 #endif        
-#if (defined (CATLASS_ARCH) && CATLASS_ARCH == 3510)
+#if (defined (CATLASS_ARCH) && (CATLASS_ARCH == 3510 || CATLASS_ARCH == 9201))
         using CopyL0CToDst = typename TileCopy_::template CopyL0CToDst<TensorC>;
         CopyL0CToDst copyL0CToDst;
 #endif        
@@ -936,7 +936,11 @@ public:
                 if (sendVecNum == 2) {
                     AscendC::CrossCoreWaitFlag<0x4, PIPE_FIX>(l0C2UBAIVAICFlag + ubListId);
                     AscendC::CrossCoreWaitFlag<0x4, PIPE_FIX>(l0C2UBAIVAICFlag + FLAG_ID_MAX + ubListId);
+                    #if (defined (CATLASS_ARCH) && CATLASS_ARCH == 9201)
+                    copyL0CToDst(tensorCList[ubListId], tensorTileL0C);
+#else
                     copyL0CToDst(tensorCList[ubListId], tensorTileL0C, ubRowNum, beginSubBlockIdx, sendVecNum);
+#endif
                     AscendC::CrossCoreSetFlag<0x4, PIPE_FIX>(l0C2UBAICAIVFlag + ubListId);
                     AscendC::CrossCoreSetFlag<0x4, PIPE_FIX>(l0C2UBAICAIVFlag + FLAG_ID_MAX + ubListId);
                     rowIdx += curRowNum;
@@ -949,7 +953,11 @@ public:
                     } else if (beginSubBlockIdx == 1) {
                         AscendC::CrossCoreWaitFlag<0x4, PIPE_FIX>(l0C2UBAIVAICFlag + FLAG_ID_MAX + ubListId);
                     }
+                    #if (defined (CATLASS_ARCH) && CATLASS_ARCH == 9201)
+                    copyL0CToDst(tensorCList[ubListId], tensorTileL0C);
+#else
                     copyL0CToDst(tensorCList[ubListId], tensorTileL0C, ubRowNum, beginSubBlockIdx, sendVecNum);
+#endif
                     if (beginSubBlockIdx == 0) {
                         AscendC::CrossCoreSetFlag<0x4, PIPE_FIX>(l0C2UBAICAIVFlag + ubListId);
                     } else if (beginSubBlockIdx == 1) {
@@ -976,7 +984,11 @@ public:
                 if (sendVecNum == 2) {
                     AscendC::CrossCoreWaitFlag<0x4, PIPE_FIX>(l0C2UBAIVAICFlag + ubListId);
                     AscendC::CrossCoreWaitFlag<0x4, PIPE_FIX>(l0C2UBAIVAICFlag + FLAG_ID_MAX + ubListId);
+                    #if (defined (CATLASS_ARCH) && CATLASS_ARCH == 9201)
+                    copyL0CToDst(tensorCList[ubListId], tensorTileL0C);
+#else
                     copyL0CToDst(tensorCList[ubListId], tensorTileL0C, ubRowNum, beginSubBlockIdx, sendVecNum);
+#endif
                     AscendC::CrossCoreSetFlag<0x4, PIPE_FIX>(l0C2UBAICAIVFlag + ubListId);
                     AscendC::CrossCoreSetFlag<0x4, PIPE_FIX>(l0C2UBAICAIVFlag + FLAG_ID_MAX + ubListId);
                     rowIdx += curRowNum;
@@ -989,7 +1001,11 @@ public:
                     } else if (beginSubBlockIdx == 1) {
                         AscendC::CrossCoreWaitFlag<0x4, PIPE_FIX>(l0C2UBAIVAICFlag + FLAG_ID_MAX + ubListId);
                     }
+                    #if (defined (CATLASS_ARCH) && CATLASS_ARCH == 9201)
+                    copyL0CToDst(tensorCList[ubListId], tensorTileL0C);
+#else
                     copyL0CToDst(tensorCList[ubListId], tensorTileL0C, ubRowNum, beginSubBlockIdx, sendVecNum);
+#endif
                     if (beginSubBlockIdx == 0) {
                         AscendC::CrossCoreSetFlag<0x4, PIPE_FIX>(l0C2UBAICAIVFlag + ubListId);
                     } else if (beginSubBlockIdx == 1) {
